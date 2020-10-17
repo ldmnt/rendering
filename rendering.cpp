@@ -10,6 +10,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "camera.h"
+
+const float CAMERA_SPEED = 2.5f;
+
 static float triangle[] = {
 //  position   color     normal
     0, 0, 0,  1, 0, 0,  0, -1, 0,
@@ -57,15 +61,18 @@ glm::vec3 cameraPos(4, 3, 2);
 glm::vec3 cameraAim = glm::normalize(glm::vec3(0.0f) - cameraPos);
 glm::vec3 cameraRight = glm::normalize(glm::cross(cameraAim, glm::vec3(0, 0, 1)));
 glm::vec3 cameraUp = glm::cross(cameraRight, cameraAim);
-float nearPlane = 0.02f;
-float farPlane = 1000.0f;
-float fieldOfView = 45.0f;
+
+Camera camera(cameraAim, cameraPos);
 
 glm::vec3 sunDir = glm::vec3(-100, 0, 0);
 
+float nearPlane = 0.02f;
+float farPlane = 1000.0f;
+float fieldOfView = 45.0f;
 glm::mat4 projection = glm::perspective(glm::radians(fieldOfView), 640.0f / 480.0f, nearPlane, farPlane);
 
 GLuint vao, vbo, ebo, shaderProgram;
+float lastFrame, deltaTime;
 
 std::string readFile(const char* filePath) {
     std::ifstream file;
@@ -164,7 +171,7 @@ static int linkShaders(std::string vertexSource, std::string fragmentSource) {
 
 static void render() {
     
-    glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0.0f), cameraUp);
+    glm::mat4 view = camera.viewMatrix();
     
     int viewLoc = glGetUniformLocation(shaderProgram, "view");
 
@@ -173,6 +180,21 @@ static void render() {
     
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, (GLvoid*)0);
+}
+
+static void processInput(GLFWwindow *window) {
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        camera.moveForward(CAMERA_SPEED * deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        camera.moveForward(- CAMERA_SPEED * deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        camera.moveRight(CAMERA_SPEED * deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        camera.moveRight(- CAMERA_SPEED * deltaTime);
+    }
 }
 
 int main()
@@ -208,7 +230,14 @@ int main()
     GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
+    lastFrame = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        processInput(window);
+
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         render();
