@@ -13,6 +13,7 @@
 #include "camera.h"
 
 const float CAMERA_SPEED = 2.5f;
+const float MOUSE_SENSITIVITY = 0.3f;
 
 static float triangle[] = {
 //  position   color     normal
@@ -57,6 +58,9 @@ static GLuint indices[] = {
     14, 22, 3,
 };
 
+bool firstMouse = true;
+double lastMouseX, lastMouseY;
+
 glm::vec3 cameraPos(4, 3, 2);
 glm::vec3 cameraAim = glm::normalize(glm::vec3(0.0f) - cameraPos);
 glm::vec3 cameraRight = glm::normalize(glm::cross(cameraAim, glm::vec3(0, 0, 1)));
@@ -99,6 +103,22 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
+static void mouse_callback(GLFWwindow* window, double xPosition, double yPosition) {
+    if (firstMouse)
+    {
+        lastMouseX = xPosition;
+        lastMouseY = yPosition;
+        firstMouse = false;
+    }
+
+    float xOffset = (lastMouseX - xPosition) * MOUSE_SENSITIVITY;
+    float yOffset = (lastMouseY - yPosition) * MOUSE_SENSITIVITY;
+    lastMouseX = xPosition;
+    lastMouseY = yPosition;
+
+    camera.turn(xOffset, yOffset);
+}
+
 static void createGeometry() {
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -116,7 +136,9 @@ static void createGeometry() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (GLvoid*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -211,8 +233,11 @@ int main()
         glfwTerminate();
         return -1;
     }
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
     glfwMakeContextCurrent(window);
+
     GLenum err = glewInit();
     if (err != GLEW_OK) {
         fprintf(stderr, "GLEW Error: %s\n", glewGetErrorString(err));
@@ -222,8 +247,8 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     createGeometry();
-    std::string vertexShader = readFile("../rendering/shaders/shader.vert");
-    std::string fragmentShader = readFile("../rendering/shaders/shader.frag");
+    std::string vertexShader = readFile("../shaders/shader.vert");
+    std::string fragmentShader = readFile("../shaders/shader.frag");
     shaderProgram = linkShaders(vertexShader, fragmentShader);
 
     glUseProgram(shaderProgram);
