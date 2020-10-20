@@ -61,10 +61,10 @@ static GLuint indices[] = {
 bool firstMouse = true;
 double lastMouseX, lastMouseY;
 
+bool fixedCamera = true;
+
 glm::vec3 cameraPos(4, 3, 2);
 glm::vec3 cameraAim = glm::normalize(glm::vec3(0.0f) - cameraPos);
-glm::vec3 cameraRight = glm::normalize(glm::cross(cameraAim, glm::vec3(0, 0, 1)));
-glm::vec3 cameraUp = glm::cross(cameraRight, cameraAim);
 
 Camera camera(cameraAim, cameraPos);
 
@@ -113,10 +113,18 @@ static void mouse_callback(GLFWwindow* window, double xPosition, double yPositio
 
     float xOffset = (lastMouseX - xPosition) * MOUSE_SENSITIVITY;
     float yOffset = (lastMouseY - yPosition) * MOUSE_SENSITIVITY;
+
+    if (fixedCamera) {
+        xOffset /= 100.0f;
+        yOffset /= 100.0f;
+        camera.rotateAroundOrigin(xOffset, yOffset);
+    }
+    else {
+        camera.turn(xOffset, yOffset);
+    }
+    
     lastMouseX = xPosition;
     lastMouseY = yPosition;
-
-    camera.turn(xOffset, yOffset);
 }
 
 static void createGeometry() {
@@ -194,11 +202,14 @@ static int linkShaders(std::string vertexSource, std::string fragmentSource) {
 static void render() {
     
     glm::mat4 view = camera.viewMatrix();
+    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, -0.5f));
     
-    int viewLoc = glGetUniformLocation(shaderProgram, "view");
 
     glUseProgram(shaderProgram);
+    int viewLoc = glGetUniformLocation(shaderProgram, "view");
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    int transformLoc = glGetUniformLocation(shaderProgram, "transform");
+    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
     
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, (GLvoid*)0);

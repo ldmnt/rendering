@@ -13,9 +13,11 @@ public:
     void moveForward(float);
     void moveRight(float);
     void turn(float counterClockwiseAngle, float risingAngle);
+    void rotateAroundOrigin(float counterClockwiseAngle, float risingAngle);
     glm::mat4 viewMatrix();
 
 private:
     void updateVectors();
+    void updateVectorsFromFront();
 };
 
