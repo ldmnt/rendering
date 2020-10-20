@@ -11,9 +11,15 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "camera.h"
+#include "util.h"
+#include "shader.h"
 
 const float CAMERA_SPEED = 2.5f;
 const float MOUSE_SENSITIVITY = 0.3f;
+
+const float PROJECTION_NEAR_PLANE = 0.02f;
+const float PROJECTION_FAR_PLANE = 1000.0f;
+const float PROJECTION_FOV = 45.0f;
 
 static float triangle[] = {
 //  position   color     normal
@@ -62,37 +68,15 @@ bool firstMouse = true;
 double lastMouseX, lastMouseY;
 
 bool fixedCamera = true;
-
 glm::vec3 cameraPos(4, 3, 2);
 glm::vec3 cameraAim = glm::normalize(glm::vec3(0.0f) - cameraPos);
-
 Camera camera(cameraAim, cameraPos);
 
-glm::vec3 sunDir = glm::vec3(-100, 0, 0);
+glm::vec3 sunDir = glm::vec3(-1, -1, -1);
+float ambientLight = 0.2f;
 
-float nearPlane = 0.02f;
-float farPlane = 1000.0f;
-float fieldOfView = 45.0f;
-glm::mat4 projection = glm::perspective(glm::radians(fieldOfView), 640.0f / 480.0f, nearPlane, farPlane);
-
-GLuint vao, vbo, ebo, shaderProgram;
+GLuint vao, vbo, ebo;
 float lastFrame, deltaTime;
-
-std::string readFile(const char* filePath) {
-    std::ifstream file;
-    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    try {
-        file.open(filePath);
-        std::stringstream stream;
-        stream << file.rdbuf();
-        file.close();
-        return stream.str();
-    }
-    catch (std::ifstream::failure& e) {
-        fprintf(stderr, "IO error: %s\n", e.what());
-        return "";
-    }
-}
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW Error: %s\n", description);
@@ -127,6 +111,21 @@ static void mouse_callback(GLFWwindow* window, double xPosition, double yPositio
     lastMouseY = yPosition;
 }
 
+static void processInput(GLFWwindow* window) {
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        camera.moveForward(CAMERA_SPEED * deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        camera.moveForward(-CAMERA_SPEED * deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        camera.moveRight(CAMERA_SPEED * deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        camera.moveRight(-CAMERA_SPEED * deltaTime);
+    }
+}
+
 static void createGeometry() {
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -158,76 +157,16 @@ static void deleteGeometry() {
     glDeleteBuffers(1, &ebo);
 }
 
-static int compileShader(GLenum type, const char* source) {
-    GLuint shaderId = glCreateShader(type);
-    glShaderSource(shaderId, 1, &source, NULL);
-    glCompileShader(shaderId);
-    GLint success;
-    glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        GLint maxLength;
-        glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &maxLength);
-        char *log = (new std::vector<GLchar>(maxLength))->data();
-        glGetShaderInfoLog(shaderId, maxLength, &maxLength, log);
-        fprintf(stderr, "Error: %s\n", log);
-        glDeleteShader(shaderId);
-        return 0;
-    }
-    return shaderId;
-}
-
-static int linkShaders(std::string vertexSource, std::string fragmentSource) {
-    int vertexShader = compileShader(GL_VERTEX_SHADER, vertexSource.c_str());
-    int fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentSource.c_str());
-    GLuint programId = glCreateProgram();
-    glAttachShader(programId, vertexShader);
-    glAttachShader(programId, fragmentShader);
-    glLinkProgram(programId);
-    GLint success;
-    glGetProgramiv(programId, GL_LINK_STATUS, &success);
-    if (!success) {
-        GLint maxLength;
-        glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &maxLength);
-        char* log = (new std::vector<GLchar>(maxLength))->data();
-        glGetProgramInfoLog(programId, maxLength, &maxLength, log);
-        fprintf(stderr, "Error: %s\n", log);
-        glDeleteProgram(programId);
-        programId = 0;
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-    return programId;
-}
-
-static void render() {
-    
+static void render(Shader shader) {
     glm::mat4 view = camera.viewMatrix();
-    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, -0.5f));
-    
+    shader.setMat4("view", view);
 
-    glUseProgram(shaderProgram);
-    int viewLoc = glGetUniformLocation(shaderProgram, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    int transformLoc = glGetUniformLocation(shaderProgram, "transform");
-    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, -0.5f));
+    shader.setMat4("transform", transform);
     
     glBindVertexArray(vao);
+    shader.use();
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, (GLvoid*)0);
-}
-
-static void processInput(GLFWwindow *window) {
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        camera.moveForward(CAMERA_SPEED * deltaTime);
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        camera.moveForward(- CAMERA_SPEED * deltaTime);
-    }
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        camera.moveRight(CAMERA_SPEED * deltaTime);
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        camera.moveRight(- CAMERA_SPEED * deltaTime);
-    }
 }
 
 int main()
@@ -258,13 +197,20 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     createGeometry();
-    std::string vertexShader = readFile("../shaders/shader.vert");
-    std::string fragmentShader = readFile("../shaders/shader.frag");
-    shaderProgram = linkShaders(vertexShader, fragmentShader);
 
-    glUseProgram(shaderProgram);
-    GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    std::string vertexShader = util::readFile("../shaders/flat.vert");
+    std::string fragmentShader = util::readFile("../shaders/flat.frag");
+    Shader shader(vertexShader, fragmentShader);
+
+    glm::mat4 projection = glm::perspective(
+        glm::radians(PROJECTION_FOV), 
+        640.0f / 480.0f, 
+        PROJECTION_NEAR_PLANE, 
+        PROJECTION_FAR_PLANE
+    );
+    shader.setMat4("projection", projection);
+    shader.setVec3("lightDir", sunDir);
+    shader.setFloat("ambientLight", ambientLight);
 
     lastFrame = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
@@ -276,12 +222,11 @@ int main()
 
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        render();
+        render(shader);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteProgram(shaderProgram);
     deleteGeometry();
     glfwDestroyWindow(window);
     glfwTerminate();

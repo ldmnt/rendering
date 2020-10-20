@@ -104,9 +104,13 @@
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="rendering.cpp" />
+    <ClCompile Include="shader.cpp" />
+    <ClCompile Include="util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
+    <ClInclude Include="util.h" />
+    <ClInclude Include="shader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
