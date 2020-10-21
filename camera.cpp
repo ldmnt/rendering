@@ -5,7 +5,7 @@ const glm::vec3 WORLD_UP(0.0f, 0.0f, 0.1f);
 
 Camera::Camera(glm::vec3 front, glm::vec3 position) :
     position(position), front(glm::normalize(front)) {
-    updateVectorsFromFront();
+    updateMembersFromFront();
 }
 
 void Camera::moveForward(float amount) {
@@ -27,15 +27,12 @@ void Camera::turn(float counterClockwiseAngle, float risingAngle) {
 }
 
 void Camera::rotateAroundOrigin(float counterClockwiseAngle, float risingAngle) {
-    glm::mat4 rotation = glm::mat4(1.0f);
-    rotation = glm::rotate(rotation, risingAngle, right);
-    rotation = glm::rotate(rotation, counterClockwiseAngle, up);
-    position = glm::vec3((rotation * glm::vec4(position, 1.0f)));
-    front = glm::vec3((rotation * glm::vec4(front, 1.0f)));
-    updateVectorsFromFront();
+    float old_radius = glm::length(position);
+    turn(counterClockwiseAngle, risingAngle);
+    position = - old_radius * front;
 }
 
-void Camera::updateVectorsFromFront() {
+void Camera::updateMembersFromFront() {
     glm::vec3 projXY = glm::normalize(glm::vec3(front.x, front.y, 0.0f));
     yaw = glm::degrees(atan2(projXY.y, projXY.x));
     pitch = glm::degrees(asin(this->front.z));
@@ -52,6 +49,11 @@ void Camera::updateVectors() {
 
     right = glm::normalize(glm::cross(front, WORLD_UP));
     up = glm::cross(right, front);
+}
+
+void Camera::lookAt(glm::vec3 target) {
+    front = glm::normalize(target - position);
+    updateMembersFromFront();
 }
 
 glm::mat4 Camera::viewMatrix() {

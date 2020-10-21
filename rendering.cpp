@@ -85,6 +85,12 @@ static void glfw_error_callback(int error, const char* description) {
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+    if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+        if (!fixedCamera) {
+            camera.lookAt(glm::vec3(0.0f));
+        }
+        fixedCamera = !fixedCamera;
+    }
 }
 
 static void mouse_callback(GLFWwindow* window, double xPosition, double yPosition) {
@@ -99,8 +105,6 @@ static void mouse_callback(GLFWwindow* window, double xPosition, double yPositio
     float yOffset = (lastMouseY - yPosition) * MOUSE_SENSITIVITY;
 
     if (fixedCamera) {
-        xOffset /= 100.0f;
-        yOffset /= 100.0f;
         camera.rotateAroundOrigin(xOffset, yOffset);
     }
     else {
