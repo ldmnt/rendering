@@ -15,7 +15,7 @@
 #include "shader.h"
 #include "model.h"
 
-const int CONE_RESOLUTION = 64;
+const int CONE_RESOLUTION = 128;
 
 const float CAMERA_SPEED = 2.5f;
 const float MOUSE_SENSITIVITY = 0.3f;
@@ -24,8 +24,8 @@ const float PROJECTION_NEAR_PLANE = 0.02f;
 const float PROJECTION_FAR_PLANE = 1000.0f;
 const float PROJECTION_FOV = 45.0f;
 
-enum shading_t { FLAT, GOURAUD };
-shading_t shadingMode = FLAT;
+enum class ShadingMode { FLAT, GOURAUD, PHONG };
+ShadingMode shadingMode = ShadingMode::PHONG;
 
 bool firstMouse = true;
 double lastMouseX, lastMouseY;
@@ -35,7 +35,7 @@ glm::vec3 cameraPos(2.5f, 1.8f, 1.5f);
 glm::vec3 cameraAim = glm::normalize(glm::vec3(0.0f) - cameraPos);
 Camera camera(cameraAim, cameraPos);
 
-glm::vec3 sunDir = glm::vec3(-2, -1, -1);
+glm::vec3 sunDir = glm::vec3(-1.5f, -1, -3);
 float ambientLight = 0.2f;
 
 GLuint vaoFlat, vboFlat, vao, vbo, ebo;
@@ -57,10 +57,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         fixedCamera = !fixedCamera;
     }
     if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
-        shadingMode = FLAT;
+        shadingMode = ShadingMode::FLAT;
     }
     if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
-        shadingMode = GOURAUD;
+        shadingMode = ShadingMode::GOURAUD;
+    }
+    if (key == GLFW_KEY_3 && action == GLFW_PRESS) {
+        shadingMode = ShadingMode::PHONG;
     }
 }
 
@@ -144,23 +147,28 @@ static void deleteGeometry() {
     glDeleteBuffers(1, &vboFlat);
 }
 
-static void render(Shader shader) {
+static void render(Shader &gouraudShader, Shader &phongShader) {
     glm::mat4 view = camera.viewMatrix();
-    shader.setMat4("view", view);
-
     glm::mat4 transform = glm::mat4(1.0f);
-    shader.setMat4("transform", transform);
-    
-    shader.use();
-    switch (shadingMode) {
-    case FLAT:
+
+    if (shadingMode == ShadingMode::PHONG) {
+        phongShader.setMat4("view", view);
+        phongShader.setMat4("transform", transform);
+        phongShader.use();
+    } 
+    else {
+        gouraudShader.setMat4("view", view);
+        gouraudShader.setMat4("transform", transform);
+        gouraudShader.use();
+    }
+
+    if (shadingMode == ShadingMode::FLAT) {
         glBindVertexArray(vaoFlat);
         glDrawArrays(GL_TRIANGLES, 0, nVerticesFlat);
-        break;
-    case GOURAUD:
+    }
+    else {
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, (GLvoid*)0);
-        break;
     }
 }
 
@@ -194,9 +202,13 @@ int main()
 
     createGeometry();
 
-    std::string vertexShader = util::readFile("../shaders/flat.vert");
-    std::string fragmentShader = util::readFile("../shaders/flat.frag");
-    Shader shader(vertexShader, fragmentShader);
+    std::string vertexShader = util::readFile("../shaders/phong.vert");
+    std::string fragmentShader = util::readFile("../shaders/phong.frag");
+    Shader phongShader(vertexShader, fragmentShader);
+
+    vertexShader = util::readFile("../shaders/gouraud.vert");
+    fragmentShader = util::readFile("../shaders/gouraud.frag");
+    Shader gouraudShader(vertexShader, fragmentShader);
 
     glm::mat4 projection = glm::perspective(
         glm::radians(PROJECTION_FOV), 
@@ -204,9 +216,13 @@ int main()
         PROJECTION_NEAR_PLANE, 
         PROJECTION_FAR_PLANE
     );
-    shader.setMat4("projection", projection);
-    shader.setVec3("lightDir", sunDir);
-    shader.setFloat("ambientLight", ambientLight);
+    gouraudShader.setMat4("projection", projection);
+    gouraudShader.setVec3("lightDir", sunDir);
+    gouraudShader.setFloat("ambientLight", ambientLight);
+
+    phongShader.setMat4("projection", projection);
+    phongShader.setVec3("lightDir", sunDir);
+    phongShader.setFloat("ambientLight", ambientLight);
 
     lastFrame = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
@@ -218,7 +234,7 @@ int main()
 
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        render(shader);
+        render(gouraudShader, phongShader);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

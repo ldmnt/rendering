@@ -10,6 +10,7 @@ private:
     GLuint id;
 
 public:
+    Shader();
     Shader(std::string vertexSource, std::string fragmentSource);
     ~Shader();
     void use();

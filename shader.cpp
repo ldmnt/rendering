@@ -2,6 +2,8 @@
 #include <vector>
 
 
+Shader::Shader() : id(0) {}
+
 Shader::Shader(std::string vertexSource, std::string fragmentSource) {
     id = linkShaders(vertexSource, fragmentSource);
 }
@@ -43,7 +45,8 @@ int Shader::compileShader(GLenum type, const char* source) {
         glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &maxLength);
         char* log = (new std::vector<char>(maxLength))->data();
         glGetShaderInfoLog(shaderId, maxLength, &maxLength, log);
-        fprintf(stderr, "Error: %s\n", log);
+        char* typeStr = type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT";
+        fprintf(stderr, "Shader Compile time error (%s): %s\n", typeStr, log);
         glDeleteShader(shaderId);
         return 0;
     }
@@ -64,7 +67,7 @@ int Shader::linkShaders(std::string vertexSource, std::string fragmentSource) {
         glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &maxLength);
         char* log = (new std::vector<char>(maxLength))->data();
         glGetProgramInfoLog(programId, maxLength, &maxLength, log);
-        fprintf(stderr, "Error: %s\n", log);
+        fprintf(stderr, "Shader link time error: %s\n", log);
         glDeleteProgram(programId);
         programId = 0;
     }
