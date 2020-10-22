@@ -13,6 +13,9 @@
 #include "camera.h"
 #include "util.h"
 #include "shader.h"
+#include "model.h"
+
+const int CONE_RESOLUTION = 64;
 
 const float CAMERA_SPEED = 2.5f;
 const float MOUSE_SENSITIVITY = 0.3f;
@@ -21,62 +24,21 @@ const float PROJECTION_NEAR_PLANE = 0.02f;
 const float PROJECTION_FAR_PLANE = 1000.0f;
 const float PROJECTION_FOV = 45.0f;
 
-static float triangle[] = {
-//  position   color     normal
-    0, 0, 0,  1, 0, 0,  0, -1, 0,
-    0, 0, 0,  0, 1, 0,  -1, 0, 0,
-    0, 0, 0,  0, 0, 1,  0, 0, -1,
-    1, 0, 0,  1, 1, 0,  1, 0, 0,
-    1, 0, 0,  1, 0, 0,  0, -1, 0,
-    1, 0, 0,  0, 0, 1,  0, 0, -1,
-    0, 1, 0,  1, 0, 1,  0, 1, 0,
-    0, 1, 0,  0, 1, 0,  -1, 0, 0,
-    0, 1, 0,  0, 0, 1,  0, 0, -1,
-    0, 0, 1,  0, 1, 1,  0, 0, 1,
-    0, 0, 1,  1, 0, 0,  0, -1, 0,
-    0, 0, 1,  0, 1, 0,  -1, 0, 0,
-    1, 1, 0,  1, 0, 1,  0, 1, 0,
-    1, 1, 0,  0, 0, 1,  0, 0, -1,
-    1, 1, 0,  1, 1, 0,  1, 0, 0,
-    0, 1, 1,  1, 0, 1,  0, 1, 0,
-    0, 1, 1,  0, 1, 0,  -1, 0, 0,
-    0, 1, 1,  0, 1, 1,  0, 0, 1,
-    1, 0, 1,  1, 0, 0,  0, -1, 0,
-    1, 0, 1,  1, 1, 0,  1, 0, 0,
-    1, 0, 1,  0, 1, 1,  0, 0, 1,
-    1, 1, 1,  1, 0, 1,  0, 1, 0,
-    1, 1, 1,  1, 1, 0,  1, 0, 0,
-    1, 1, 1,  0, 1, 1,  0, 0, 1,
-};
-
-static GLuint indices[] = { 
-    2, 8, 5, 
-    5, 8, 13, 
-    18, 10, 0, 
-    18, 0, 4,
-    16, 7, 1,
-    11, 16, 1,
-    17, 9, 20,
-    23, 17, 20,
-    15, 21, 12,
-    6, 15, 12,
-    22, 19, 3,
-    14, 22, 3,
-};
-
 bool firstMouse = true;
 double lastMouseX, lastMouseY;
 
 bool fixedCamera = true;
-glm::vec3 cameraPos(4, 3, 2);
+glm::vec3 cameraPos(2.5f, 1.8f, 1.5f);
 glm::vec3 cameraAim = glm::normalize(glm::vec3(0.0f) - cameraPos);
 Camera camera(cameraAim, cameraPos);
 
-glm::vec3 sunDir = glm::vec3(-1, -1, -1);
+glm::vec3 sunDir = glm::vec3(0, 1, -1);
 float ambientLight = 0.2f;
 
 GLuint vao, vbo, ebo;
 float lastFrame, deltaTime;
+
+int nIndices;
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW Error: %s\n", description);
@@ -131,6 +93,11 @@ static void processInput(GLFWwindow* window) {
 }
 
 static void createGeometry() {
+    Mesh mesh = mdl::generateCone(CONE_RESOLUTION, 1);
+    std::vector<float> vertexData = mesh.renderingData();
+    std::vector<unsigned int> indices = mesh.renderingIndices();
+    nIndices = indices.size();
+
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
     glGenBuffers(1, &ebo);
@@ -138,17 +105,15 @@ static void createGeometry() {
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), vertexData.data(), GL_STATIC_DRAW);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (GLvoid*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -165,12 +130,12 @@ static void render(Shader shader) {
     glm::mat4 view = camera.viewMatrix();
     shader.setMat4("view", view);
 
-    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, -0.5f));
+    glm::mat4 transform = glm::mat4(1.0f);
     shader.setMat4("transform", transform);
     
     glBindVertexArray(vao);
     shader.use();
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, (GLvoid*)0);
+    glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }
 
 int main()
@@ -199,6 +164,7 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     createGeometry();
 

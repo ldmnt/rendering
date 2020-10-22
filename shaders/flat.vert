@@ -1,8 +1,7 @@
 #version 330
 
 layout (location = 0) in vec3 vertex;
-layout (location = 1) in vec3 color;
-layout (location = 2) in vec3 normal;
+layout (location = 1) in vec3 normal;
 
 out vec3 fragColor;
 
@@ -13,6 +12,6 @@ uniform vec3 lightDir;
 uniform float ambientLight;
 
 void main() {
-	fragColor = (max(0, dot(normalize(-lightDir), normalize(normal))) + ambientLight) * color;
+	fragColor = (max(0, dot(normalize(-lightDir), normalize(normal))) + ambientLight) * vec3(1.0f, 0.8f, 0.2f);
 	gl_Position = projection * view * transform * vec4(vertex, 1.0f);
 }
