@@ -24,6 +24,9 @@ const float PROJECTION_NEAR_PLANE = 0.02f;
 const float PROJECTION_FAR_PLANE = 1000.0f;
 const float PROJECTION_FOV = 45.0f;
 
+enum shading_t { FLAT, GOURAUD };
+shading_t shadingMode = FLAT;
+
 bool firstMouse = true;
 double lastMouseX, lastMouseY;
 
@@ -32,13 +35,13 @@ glm::vec3 cameraPos(2.5f, 1.8f, 1.5f);
 glm::vec3 cameraAim = glm::normalize(glm::vec3(0.0f) - cameraPos);
 Camera camera(cameraAim, cameraPos);
 
-glm::vec3 sunDir = glm::vec3(0, 1, -1);
+glm::vec3 sunDir = glm::vec3(-2, -1, -1);
 float ambientLight = 0.2f;
 
-GLuint vao, vbo, ebo;
+GLuint vaoFlat, vboFlat, vao, vbo, ebo;
 float lastFrame, deltaTime;
 
-int nIndices;
+int nIndices, nVerticesFlat;
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW Error: %s\n", description);
@@ -52,6 +55,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             camera.lookAt(glm::vec3(0.0f));
         }
         fixedCamera = !fixedCamera;
+    }
+    if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
+        shadingMode = FLAT;
+    }
+    if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
+        shadingMode = GOURAUD;
     }
 }
 
@@ -94,6 +103,7 @@ static void processInput(GLFWwindow* window) {
 
 static void createGeometry() {
     Mesh mesh = mdl::generateCone(CONE_RESOLUTION, 1);
+
     std::vector<float> vertexData = mesh.renderingData();
     std::vector<unsigned int> indices = mesh.renderingIndices();
     nIndices = indices.size();
@@ -103,27 +113,35 @@ static void createGeometry() {
     glGenBuffers(1, &ebo);
 
     glBindVertexArray(vao);
-
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), vertexData.data(), GL_STATIC_DRAW);
-    
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    std::vector<float> vertexDataFlat = mesh.flatRenderingData();
+    nVerticesFlat = 3 * mesh.faceCount();
+    glGenVertexArrays(1, &vaoFlat);
+    glGenBuffers(1, &vboFlat);
+
+    glBindVertexArray(vaoFlat);
+    glBindBuffer(GL_ARRAY_BUFFER, vboFlat);
+    glBufferData(GL_ARRAY_BUFFER, vertexDataFlat.size() * sizeof(float), vertexDataFlat.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 }
 
 static void deleteGeometry() {
     glDeleteBuffers(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
+    glDeleteBuffers(1, &vaoFlat);
+    glDeleteBuffers(1, &vboFlat);
 }
 
 static void render(Shader shader) {
@@ -133,9 +151,17 @@ static void render(Shader shader) {
     glm::mat4 transform = glm::mat4(1.0f);
     shader.setMat4("transform", transform);
     
-    glBindVertexArray(vao);
     shader.use();
-    glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, (GLvoid*)0);
+    switch (shadingMode) {
+    case FLAT:
+        glBindVertexArray(vaoFlat);
+        glDrawArrays(GL_TRIANGLES, 0, nVerticesFlat);
+        break;
+    case GOURAUD:
+        glBindVertexArray(vao);
+        glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, (GLvoid*)0);
+        break;
+    }
 }
 
 int main()

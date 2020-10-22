@@ -24,6 +24,10 @@ unsigned int& Face::operator[](int i) {
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<Face> faces) : 
     vertices(vertices), faces(faces) {}
 
+int Mesh::faceCount() {
+    return faces.size();
+}
+
 std::vector<float> Mesh::renderingData() {
     std::vector<float> data(6 * vertices.size());
     glm::vec3 v;
@@ -55,6 +59,28 @@ std::vector<unsigned int> Mesh::renderingIndices() {
     return indices;
 }
 
+std::vector<float> Mesh::flatRenderingData() {
+    std::vector<float> data(18 * faces.size());
+    glm::vec3 n, v;
+    for (int i = 0; i < faces.size(); i++) {
+        n = glm::cross(
+            vertices[faces[i][1]].position - vertices[faces[i][0]].position,
+            vertices[faces[i][2]].position - vertices[faces[i][0]].position
+        );
+        n = glm::normalize(n);
+        for (int j = 0; j < 3; j++) {
+            v = vertices[faces[i][j]].position;
+            data[18 * i + 6 * j] = v.x;
+            data[18 * i + 6 * j + 1] = v.y;
+            data[18 * i + 6 * j + 2] = v.z;
+            data[18 * i + 6 * j + 3] = n.x;
+            data[18 * i + 6 * j + 4] = n.y;
+            data[18 * i + 6 * j + 5] = n.z;
+        }
+    }
+    return data;
+}
+
 void Mesh::print() {
     printf("vertices:\n");
     for (int i = 0; i < vertices.size(); i++) {
@@ -71,36 +97,39 @@ void Mesh::print() {
 
 namespace mdl {
     Mesh generateCone(int sides, float scale) {
-        std::vector<Vertex> vertices(2 * sides + 2);
+        std::vector<Vertex> vertices(3 * sides + 1);
         glm::vec3 dir;
         double angle;
 
         for (int i = 0; i < sides; i++) {
             angle = 2 * i * glm::pi<double>() / sides;
             dir = glm::vec3(cos(angle), sin(angle), 0.0f);
-            vertices[i] = Vertex(
+            vertices[2 * i] = Vertex(
                 scale * dir,
                 dir
             );
-            vertices[sides + i] = Vertex(
+
+            angle = 2 * (i + 0.5) * glm::pi<double>() / sides;
+            vertices[2 * i + 1] = Vertex(
+                scale * glm::vec3(0.0f, 0.0f, 1.0f),
+                glm::normalize(glm::vec3(cos(angle), sin(angle), 1))
+            );
+
+            vertices[2 * sides + i] = Vertex(
                 scale * dir,
                 glm::vec3(0.0f, 0.0f, - 1.0f)
             );
         }
-        dir = glm::vec3(0.0f, 0.0f, 1.0f);
-        vertices[2 * sides] = Vertex(
-            scale * dir,
-            dir
-        );
-        vertices[2 * sides + 1] = Vertex(
+
+        vertices[3 * sides] = Vertex(
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(0.0f, 0.0f, - 1.0f)
         );
 
         std::vector<Face> faces(2 * sides);
         for (int i = 0; i < sides; i++) {
-            faces[i] = Face(i, (i + 1) % sides, 2 * sides);
-            faces[sides + i] = Face(sides + (i + 1) % sides, sides + i, 2 * sides + 1);
+            faces[i] = Face(2 * i, 2 * (i + 1) % (2 * sides), 2 * i + 1);
+            faces[sides + i] = Face(2 * sides + (i + 1) % sides, 2 * sides + i, 3 * sides);
         }
 
         return Mesh(vertices, faces);

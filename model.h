@@ -26,8 +26,10 @@ private:
 
 public:
     Mesh(std::vector<Vertex> vertices, std::vector<Face> faces);
+    int faceCount();
     std::vector<float> renderingData();
     std::vector<unsigned int> renderingIndices();
+    std::vector<float> flatRenderingData();
     void print();
 };
 
