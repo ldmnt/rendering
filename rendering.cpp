@@ -38,8 +38,8 @@ double lastMouseX, lastMouseY;
 bool fixedCamera = true;
 Camera camera(CAMERA_INITIAL_AIM, CAMERA_NEAR_PLANE, CAMERA_FAR_PLANE, SCREEN_WIDTH / SCREEN_HEIGHT, CAMERA_FOV, CAMERA_INITIAL_POS);
 
-glm::vec3 sunDir = glm::vec3(-1.5f, -1, -3);
-float ambientLight = 0.2f;
+glm::vec3 sunDir = glm::vec3(-1, 0, -0.5f); // glm::vec3(-1.5f, -1, -3);
+float ambientLight = 0.0f;
 
 GLuint vaoFlat, vboFlat, vao, vbo, ebo;
 int nIndices, nVerticesFlat;
@@ -107,7 +107,7 @@ static void processInput(GLFWwindow* window) {
 }
 
 static void createGeometry() {
-    Mesh mesh = mdl::generateCone(CONE_RESOLUTION, 1);
+    Mesh mesh = mdl::generateCone(CONE_RESOLUTION, 1, 2.0f);
 
     std::vector<float> vertexData = mesh.renderingData();
     std::vector<unsigned int> indices = mesh.renderingIndices();
@@ -151,7 +151,7 @@ static void deleteGeometry() {
 
 static void render(Shader &gouraudShader, Shader &phongShader) {
     glm::mat4 view = camera.viewMatrix();
-    glm::mat4 transform = glm::mat4(1.0f);
+    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
 
     if (shadingMode == ShadingMode::PHONG) {
         phongShader.setMat4("view", view);
@@ -194,6 +194,7 @@ int main()
     glfwMakeContextCurrent(window);
 
     GLenum err = glewInit();
+
     if (err != GLEW_OK) {
         fprintf(stderr, "GLEW Error: %s\n", glewGetErrorString(err));
         return -1;

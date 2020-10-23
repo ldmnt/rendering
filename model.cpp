@@ -96,7 +96,7 @@ void Mesh::print() {
 }
 
 namespace mdl {
-    Mesh generateCone(int sides, float scale) {
+    Mesh generateCone(int sides, float scale, float aspectRatio) {
         std::vector<Vertex> vertices(3 * sides + 1);
         glm::vec3 dir;
         double angle;
@@ -111,7 +111,7 @@ namespace mdl {
 
             angle = 2 * (i + 0.5) * glm::pi<double>() / sides;
             vertices[2 * i + 1] = Vertex(
-                scale * glm::vec3(0.0f, 0.0f, 1.0f),
+                scale * glm::vec3(0.0f, 0.0f, aspectRatio),
                 glm::normalize(glm::vec3(cos(angle), sin(angle), 1))
             );
 

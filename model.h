@@ -34,5 +34,5 @@ public:
 };
 
 namespace mdl {
-    Mesh generateCone(int sides, float scale);
+    Mesh generateCone(int sides, float scale, float aspectRatio = 1.0f);
 }
