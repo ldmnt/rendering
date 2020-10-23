@@ -1,21 +1,21 @@
 #version 330
 
-layout (location = 0) in vec3 vertex;
-layout (location = 1) in vec3 normal;
+layout (location = 0) in vec3 inVertex;
+layout (location = 1) in vec3 inNormal;
 
-out vec3 inNormal;
-out vec3 inLightDir;
-out float inAmbientLight;
+out vec3 normal;
+out vec3 lightDir;
+out float ambientLight;
 
 uniform mat4 transform;
 uniform mat4 view;
 uniform mat4 projection;
-uniform vec3 lightDir;
-uniform float ambientLight;
+uniform vec3 inLightDir;
+uniform float inAmbientLight;
 
 void main() {
-	inNormal = normal;
-	inLightDir = lightDir;
-	inAmbientLight = ambientLight;
-	gl_Position = projection * view * transform * vec4(vertex, 1.0f);
+	normal = inNormal;
+	lightDir = inLightDir;
+	ambientLight = inAmbientLight;
+	gl_Position = projection * view * transform * vec4(inVertex, 1.0f);
 }

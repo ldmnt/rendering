@@ -17,12 +17,17 @@
 
 const int CONE_RESOLUTION = 128;
 
-const float CAMERA_SPEED = 2.5f;
-const float MOUSE_SENSITIVITY = 0.3f;
+const float SCREEN_WIDTH = 640.0f;
+const float SCREEN_HEIGHT = 480.0f;
 
-const float PROJECTION_NEAR_PLANE = 0.02f;
-const float PROJECTION_FAR_PLANE = 1000.0f;
-const float PROJECTION_FOV = 45.0f;
+const float CAMERA_SPEED = 2.5f;
+const float CAMERA_FOV = 45.0f;
+const float CAMERA_NEAR_PLANE = 0.02f;
+const float CAMERA_FAR_PLANE = 1000.0f;
+const glm::vec3 CAMERA_INITIAL_POS = glm::vec3(2.5f, 1.8f, 1.5f);
+const glm::vec3 CAMERA_INITIAL_AIM = glm::normalize(glm::vec3(0.0f) - CAMERA_INITIAL_POS);
+
+const float MOUSE_SENSITIVITY = 0.3f;
 
 enum class ShadingMode { FLAT, GOURAUD, PHONG };
 ShadingMode shadingMode = ShadingMode::PHONG;
@@ -31,17 +36,14 @@ bool firstMouse = true;
 double lastMouseX, lastMouseY;
 
 bool fixedCamera = true;
-glm::vec3 cameraPos(2.5f, 1.8f, 1.5f);
-glm::vec3 cameraAim = glm::normalize(glm::vec3(0.0f) - cameraPos);
-Camera camera(cameraAim, cameraPos);
+Camera camera(CAMERA_INITIAL_AIM, CAMERA_NEAR_PLANE, CAMERA_FAR_PLANE, SCREEN_WIDTH / SCREEN_HEIGHT, CAMERA_FOV, CAMERA_INITIAL_POS);
 
 glm::vec3 sunDir = glm::vec3(-1.5f, -1, -3);
 float ambientLight = 0.2f;
 
 GLuint vaoFlat, vboFlat, vao, vbo, ebo;
-float lastFrame, deltaTime;
-
 int nIndices, nVerticesFlat;
+float lastFrame, deltaTime;
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW Error: %s\n", description);
@@ -181,7 +183,7 @@ int main()
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    GLFWwindow* window = glfwCreateWindow(640, 480, "Sandbox", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Sandbox", NULL, NULL);
     if (!window) {
         glfwTerminate();
         return -1;
@@ -210,19 +212,14 @@ int main()
     fragmentShader = util::readFile("../shaders/gouraud.frag");
     Shader gouraudShader(vertexShader, fragmentShader);
 
-    glm::mat4 projection = glm::perspective(
-        glm::radians(PROJECTION_FOV), 
-        640.0f / 480.0f, 
-        PROJECTION_NEAR_PLANE, 
-        PROJECTION_FAR_PLANE
-    );
+    glm::mat4 projection = camera.projectionMatrix();
     gouraudShader.setMat4("projection", projection);
-    gouraudShader.setVec3("lightDir", sunDir);
-    gouraudShader.setFloat("ambientLight", ambientLight);
+    gouraudShader.setVec3("inLightDir", sunDir);
+    gouraudShader.setFloat("inAmbientLight", ambientLight);
 
     phongShader.setMat4("projection", projection);
-    phongShader.setVec3("lightDir", sunDir);
-    phongShader.setFloat("ambientLight", ambientLight);
+    phongShader.setVec3("inLightDir", sunDir);
+    phongShader.setFloat("inAmbientLight", ambientLight);
 
     lastFrame = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {

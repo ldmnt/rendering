@@ -3,8 +3,8 @@
 
 const glm::vec3 WORLD_UP(0.0f, 0.0f, 0.1f);
 
-Camera::Camera(glm::vec3 front, glm::vec3 position) :
-    position(position), front(glm::normalize(front)) {
+Camera::Camera(glm::vec3 front, float nearPlane, float farPlane, float aspectRatio, float fov, glm::vec3 position) :
+    position(position), front(glm::normalize(front)), nearPlane(nearPlane), farPlane(farPlane), aspectRatio(aspectRatio), fov(fov) {
     updateMembersFromFront();
 }
 
@@ -58,4 +58,8 @@ void Camera::lookAt(glm::vec3 target) {
 
 glm::mat4 Camera::viewMatrix() {
     return glm::lookAt(position, position + front, up);
+}
+
+glm::mat4 Camera::projectionMatrix() {
+    return glm::perspective(fov, aspectRatio, nearPlane, farPlane);
 }
