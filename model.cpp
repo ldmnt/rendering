@@ -1,7 +1,9 @@
 #include "model.h"
 #include <glm/gtc/constants.hpp>
 #include <sstream>
-
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <functional>
 
 Vertex::Vertex() {}
 
@@ -17,11 +19,47 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<Face> faces, bool supportFl
     }
 }
 
-Mesh::~Mesh() {
+Mesh::Mesh(Mesh&& other) {
+    vertices = other.vertices;
+    faces = other.faces;
+    supportFlatShading = other.supportFlatShading;
+    vao = other.vao;
+    vbo = other.vbo;
+    ebo = other.ebo;
+    vaoFlat = other.vaoFlat;
+    vboFlat = other.vboFlat;
+
+    other.vao = 0;
+}
+
+Mesh& Mesh::operator=(Mesh&& other) {
+    if (this != &other) {
+        release();
+        vertices = other.vertices;
+        faces = other.faces;
+        supportFlatShading = other.supportFlatShading;
+        vao = other.vao;
+        vbo = other.vbo;
+        ebo = other.ebo;
+        vaoFlat = other.vaoFlat;
+        vboFlat = other.vboFlat;
+
+        other.vao = 0;
+    }
+    return *this;
+}
+
+void Mesh::release() {
+    if (vao == 0)
+        return;
     unbufferData();
     if (supportFlatShading) {
         unbufferFlatShadingData();
     }
+}
+
+Mesh::~Mesh() {
+    release();
 }
 
 int Mesh::faceCount() {
@@ -104,6 +142,54 @@ void Mesh::print() {
     printf("\nfaces\n");
     for (int i = 0; i < faces.size(); i++) {
         printf("(%d, %d, %d)\n", faces[i].indices[0], faces[i].indices[1], faces[i].indices[2]);
+    }
+}
+
+Model::Model(char* path, bool supportFlatShading) {
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenNormals);
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        printf("Assimp error: %s\n", importer.GetErrorString());
+        return;
+    }
+
+    auto processMesh = [&](aiMesh* mesh) {
+        std::vector<Vertex> vertices;
+        std::vector<Face> faces;
+
+        for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+            Vertex v(
+                glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z),
+                glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z)
+            );
+            vertices.push_back(v);
+        }
+        for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+            aiFace face = mesh->mFaces[i];
+            Face f(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
+            faces.push_back(f);
+        }
+        
+        Mesh *m = new Mesh(vertices, faces, supportFlatShading);
+        return std::unique_ptr<Mesh>(m);
+    };
+
+    std::function<void(aiNode*)> processNode = [&](aiNode* node) {
+        for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+            aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+            meshes.push_back(processMesh(mesh));
+        }
+        for (unsigned int i = 0; i < node->mNumChildren; i++) {
+            processNode(node->mChildren[i]);
+        }
+    };
+
+    processNode(scene->mRootNode);
+}
+
+void Model::draw(Shader& shader, bool flatShading) {
+    for (auto it = meshes.begin(); it != meshes.end(); it++) {
+        (*it)->draw(shader, flatShading);
     }
 }
 

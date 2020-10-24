@@ -39,7 +39,7 @@ double lastMouseX, lastMouseY;
 bool fixedCamera = true;
 Camera camera(CAMERA_INITIAL_AIM, CAMERA_NEAR_PLANE, CAMERA_FAR_PLANE, SCREEN_WIDTH / SCREEN_HEIGHT, CAMERA_FOV, CAMERA_INITIAL_POS);
 
-glm::vec3 sunDir = glm::vec3(-1, 0, -0.5f); // glm::vec3(-1.5f, -1, -3);
+glm::vec3 sunDir = glm::vec3(-1, 0, -0.5f);
 float ambientLight = 0.0f;
 
 GLuint vaoFlat, vboFlat, vao, vbo, ebo;
@@ -107,17 +107,17 @@ static void processInput(GLFWwindow* window) {
     }
 }
 
-static void render(Mesh &mesh, Shader &gouraudShader, Shader &phongShader) {
+static void render(Model &model, Shader &gouraudShader, Shader &phongShader) {
     Shader &shader = shadingMode == ShadingMode::PHONG ? phongShader : gouraudShader;
 
     glm::mat4 view = camera.viewMatrix();
-    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+    glm::mat4 transform = glm::mat4(1.0f);
 
     shader.setMat4("view", view);
     shader.setMat4("transform", transform);
     shader.use();
 
-    mesh.draw(shader, shadingMode == ShadingMode::FLAT);
+    model.draw(shader, shadingMode == ShadingMode::FLAT);
 }
 
 int main()
@@ -149,7 +149,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    Mesh mesh = mdl::generateCone(CONE_RESOLUTION, 1, 2.0f);
+    Model model("../resources/sphere.obj", true);
 
     std::string vertexShader = util::readFile("../shaders/phong.vert");
     std::string fragmentShader = util::readFile("../shaders/phong.frag");
@@ -178,7 +178,7 @@ int main()
 
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        render(mesh, gouraudShader, phongShader);
+        render(model, gouraudShader, phongShader);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

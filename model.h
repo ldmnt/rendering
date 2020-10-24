@@ -1,6 +1,8 @@
 #include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 #include <string>
+#include <assimp/Importer.hpp>
 #include "shader.h"
 
 
@@ -37,11 +39,25 @@ private:
     void unbufferFlatShadingData();
 
 public:
-    Mesh(std::vector<Vertex> vertices, std::vector<Face> faces, bool supportFlatShading = false);
+    Mesh(std::vector<Vertex> vertices, std::vector<Face> faces, bool supportFlatShading);
+    Mesh(const Mesh&) = delete;
+    Mesh &operator=(const Mesh&) = delete;
+    Mesh(Mesh&& other);
+    Mesh &operator=(Mesh&&);
     ~Mesh();
+    void release();
     int faceCount();
-    void draw(Shader &shader, bool flatShading = false);
+    void draw(Shader &shader, bool flatShading);
     void print();
+};
+
+class Model {
+private:
+    std::vector<std::unique_ptr<Mesh>> meshes;
+
+public:
+    Model(char* path, bool supportFlatShading = false);
+    void draw(Shader& shader, bool flatShading = false);
 };
 
 namespace mdl {
