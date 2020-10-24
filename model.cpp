@@ -1,84 +1,96 @@
 #include "model.h"
 #include <glm/gtc/constants.hpp>
 #include <sstream>
-#include <stdexcept>
 
 
-Vertex::Vertex() : position(glm::vec3()), normal(glm::vec3()) {};
+Vertex::Vertex() {}
 
-Vertex::Vertex(glm::vec3 position, glm::vec3 normal) :
-    position(position), normal(normal) {}
+Vertex::Vertex(glm::vec3 position, glm::vec3 normal) : position(position), normal(normal) {}
 
 Face::Face() {}
 
-Face::Face(int i, int j, int k) {
-    indices[0] = i;
-    indices[1] = j;
-    indices[2] = k;
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<Face> faces, bool supportFlatShading) : 
+    vertices(vertices), faces(faces), supportFlatShading(supportFlatShading) {
+    bufferData();
+    if (supportFlatShading) {
+        bufferFlatShadingData();
+    }
 }
 
-unsigned int& Face::operator[](int i) {
-    return indices[i];
+Mesh::~Mesh() {
+    unbufferData();
+    if (supportFlatShading) {
+        unbufferFlatShadingData();
+    }
 }
-
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<Face> faces) : 
-    vertices(vertices), faces(faces) {}
 
 int Mesh::faceCount() {
     return faces.size();
 }
 
-std::vector<float> Mesh::renderingData() {
-    std::vector<float> data(6 * vertices.size());
-    glm::vec3 v;
-    int k;
-    for (int i = 0; i < vertices.size(); i++) {
-        k = 6 * i;
-        v = vertices[i].position;
-        data[k] = v.x;
-        data[k + 1] = v.y;
-        data[k + 2] = v.z;
-        k += 3;
-        v = vertices[i].normal;
-        data[k] = v.x;
-        data[k + 1] = v.y;
-        data[k + 2] = v.z;
-    }
-    return data;
+void Mesh::bufferData() {
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(Face), faces.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 }
 
-std::vector<unsigned int> Mesh::renderingIndices() {
-    std::vector<unsigned int> indices(3 * faces.size());
-    int k;
+void Mesh::bufferFlatShadingData() {
+    std::vector<Vertex> flatVertices(3 * faces.size());
     for (int i = 0; i < faces.size(); i++) {
-        k = 3 * i;
-        indices[k] = faces[i][0];
-        indices[k + 1] = faces[i][1];
-        indices[k + 2] = faces[i][2];
-    }
-    return indices;
-}
-
-std::vector<float> Mesh::flatRenderingData() {
-    std::vector<float> data(18 * faces.size());
-    glm::vec3 n, v;
-    for (int i = 0; i < faces.size(); i++) {
-        n = glm::cross(
-            vertices[faces[i][1]].position - vertices[faces[i][0]].position,
-            vertices[faces[i][2]].position - vertices[faces[i][0]].position
+        glm::vec3 normal = glm::cross(
+            vertices[faces[i].indices[1]].position - vertices[faces[i].indices[0]].position,
+            vertices[faces[i].indices[2]].position - vertices[faces[i].indices[0]].position
         );
-        n = glm::normalize(n);
+        normal = glm::normalize(normal);
         for (int j = 0; j < 3; j++) {
-            v = vertices[faces[i][j]].position;
-            data[18 * i + 6 * j] = v.x;
-            data[18 * i + 6 * j + 1] = v.y;
-            data[18 * i + 6 * j + 2] = v.z;
-            data[18 * i + 6 * j + 3] = n.x;
-            data[18 * i + 6 * j + 4] = n.y;
-            data[18 * i + 6 * j + 5] = n.z;
+            flatVertices[3 * i + j] = Vertex(vertices[faces[i].indices[j]].position, normal);
         }
     }
-    return data;
+    
+    glGenVertexArrays(1, &vaoFlat);
+    glGenBuffers(1, &vboFlat);
+
+    glBindVertexArray(vaoFlat);
+    glBindBuffer(GL_ARRAY_BUFFER, vboFlat);
+    glBufferData(GL_ARRAY_BUFFER, flatVertices.size() * sizeof(Vertex), flatVertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+}
+
+void Mesh::unbufferData() {
+    glDeleteBuffers(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
+}
+
+void Mesh::unbufferFlatShadingData() {
+    glDeleteBuffers(1, &vaoFlat);
+    glDeleteBuffers(1, &vboFlat);
+}
+
+void Mesh::draw(Shader &shader, bool flatShading) {
+    shader.use();
+    if (flatShading) {
+        glBindVertexArray(vaoFlat);
+        glDrawArrays(GL_TRIANGLES, 0, 3 * faces.size());
+    }
+    else {
+        glBindVertexArray(vao);
+        glDrawElements(GL_TRIANGLES, faces.size() * sizeof(Face), GL_UNSIGNED_INT, (GLvoid*)0);
+    }
 }
 
 void Mesh::print() {
@@ -91,7 +103,7 @@ void Mesh::print() {
     }
     printf("\nfaces\n");
     for (int i = 0; i < faces.size(); i++) {
-        printf("(%d, %d, %d)\n", faces[i][0], faces[i][1], faces[i][2]);
+        printf("(%d, %d, %d)\n", faces[i].indices[0], faces[i].indices[1], faces[i].indices[2]);
     }
 }
 
@@ -132,6 +144,6 @@ namespace mdl {
             faces[sides + i] = Face(2 * sides + (i + 1) % sides, 2 * sides + i, 3 * sides);
         }
 
-        return Mesh(vertices, faces);
+        return Mesh(vertices, faces, true);
     }
 }

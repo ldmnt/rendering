@@ -9,6 +9,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <assimp/Importer.hpp>
 
 #include "camera.h"
 #include "util.h"
@@ -106,72 +107,17 @@ static void processInput(GLFWwindow* window) {
     }
 }
 
-static void createGeometry() {
-    Mesh mesh = mdl::generateCone(CONE_RESOLUTION, 1, 2.0f);
+static void render(Mesh &mesh, Shader &gouraudShader, Shader &phongShader) {
+    Shader &shader = shadingMode == ShadingMode::PHONG ? phongShader : gouraudShader;
 
-    std::vector<float> vertexData = mesh.renderingData();
-    std::vector<unsigned int> indices = mesh.renderingIndices();
-    nIndices = indices.size();
-
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
-    glGenBuffers(1, &ebo);
-
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), vertexData.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    std::vector<float> vertexDataFlat = mesh.flatRenderingData();
-    nVerticesFlat = 3 * mesh.faceCount();
-    glGenVertexArrays(1, &vaoFlat);
-    glGenBuffers(1, &vboFlat);
-
-    glBindVertexArray(vaoFlat);
-    glBindBuffer(GL_ARRAY_BUFFER, vboFlat);
-    glBufferData(GL_ARRAY_BUFFER, vertexDataFlat.size() * sizeof(float), vertexDataFlat.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-}
-
-static void deleteGeometry() {
-    glDeleteBuffers(1, &vao);
-    glDeleteBuffers(1, &vbo);
-    glDeleteBuffers(1, &ebo);
-    glDeleteBuffers(1, &vaoFlat);
-    glDeleteBuffers(1, &vboFlat);
-}
-
-static void render(Shader &gouraudShader, Shader &phongShader) {
     glm::mat4 view = camera.viewMatrix();
     glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
 
-    if (shadingMode == ShadingMode::PHONG) {
-        phongShader.setMat4("view", view);
-        phongShader.setMat4("transform", transform);
-        phongShader.use();
-    } 
-    else {
-        gouraudShader.setMat4("view", view);
-        gouraudShader.setMat4("transform", transform);
-        gouraudShader.use();
-    }
+    shader.setMat4("view", view);
+    shader.setMat4("transform", transform);
+    shader.use();
 
-    if (shadingMode == ShadingMode::FLAT) {
-        glBindVertexArray(vaoFlat);
-        glDrawArrays(GL_TRIANGLES, 0, nVerticesFlat);
-    }
-    else {
-        glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, nIndices, GL_UNSIGNED_INT, (GLvoid*)0);
-    }
+    mesh.draw(shader, shadingMode == ShadingMode::FLAT);
 }
 
 int main()
@@ -203,7 +149,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    createGeometry();
+    Mesh mesh = mdl::generateCone(CONE_RESOLUTION, 1, 2.0f);
 
     std::string vertexShader = util::readFile("../shaders/phong.vert");
     std::string fragmentShader = util::readFile("../shaders/phong.frag");
@@ -232,12 +178,11 @@ int main()
 
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        render(gouraudShader, phongShader);
+        render(mesh, gouraudShader, phongShader);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    deleteGeometry();
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
