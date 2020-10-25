@@ -8,6 +8,10 @@ Camera::Camera(glm::vec3 front, float nearPlane, float farPlane, float aspectRat
     updateMembersFromFront();
 }
 
+glm::vec3 Camera::getPosition() {
+    return position;
+}
+
 void Camera::moveForward(float amount) {
     position += amount * front;
 }

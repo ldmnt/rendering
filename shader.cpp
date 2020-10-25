@@ -16,21 +16,21 @@ void Shader::use() {
     glUseProgram(id);
 }
 
-void Shader::setMat4(const char* name, glm::mat4 value) {
+void Shader::setMat4(std::string name, glm::mat4 value) {
     use();
-    int loc = glGetUniformLocation(id, name);
+    int loc = glGetUniformLocation(id, name.c_str());
     glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
 }
 
-void Shader::setVec3(const char* name, glm::vec3 value) {
+void Shader::setVec3(std::string name, glm::vec3 value) {
     use();
-    int loc = glGetUniformLocation(id, name);
+    int loc = glGetUniformLocation(id, name.c_str());
     glUniform3fv(loc, 1, glm::value_ptr(value));
 }
 
-void Shader::setFloat(const char* name, float value) {
+void Shader::setFloat(std::string name, float value) {
     use();
-    int loc = glGetUniformLocation(id, name);
+    int loc = glGetUniformLocation(id, name.c_str());
     glUniform1f(loc, value);
 }
 

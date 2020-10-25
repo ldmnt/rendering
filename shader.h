@@ -17,9 +17,9 @@ public:
     Shader(std::string vertexSource, std::string fragmentSource);
     ~Shader();
     void use();
-    void setMat4(const char* name, glm::mat4 value);
-    void setVec3(const char* name, glm::vec3 value);
-    void setFloat(const char* name, float value);
+    void setMat4(std::string name, glm::mat4 value);
+    void setVec3(std::string name, glm::vec3 value);
+    void setFloat(std::string name, float value);
 
 private:
     int compileShader(GLenum type, const char* source);

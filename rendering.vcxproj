@@ -103,6 +103,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="drawing.cpp" />
+    <ClCompile Include="light.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="rendering.cpp" />
     <ClCompile Include="shader.cpp" />
@@ -110,6 +112,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
+    <ClInclude Include="drawing.h" />
+    <ClInclude Include="light.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="shader.h" />

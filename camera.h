@@ -14,6 +14,7 @@ private:
 public:
     Camera(glm::vec3 front, float nearPlane, float farPlane, float aspectRatio, float fov, glm::vec3 position = glm::vec3(0.0f));
 
+    glm::vec3 getPosition();
     void moveForward(float);
     void moveRight(float);
     void turn(float counterClockwiseAngle, float risingAngle);

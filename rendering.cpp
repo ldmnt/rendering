@@ -15,6 +15,8 @@
 #include "util.h"
 #include "shader.h"
 #include "model.h"
+#include "light.h"
+#include "drawing.h"
 
 const int CONE_RESOLUTION = 128;
 
@@ -39,11 +41,6 @@ double lastMouseX, lastMouseY;
 bool fixedCamera = true;
 Camera camera(CAMERA_INITIAL_AIM, CAMERA_NEAR_PLANE, CAMERA_FAR_PLANE, SCREEN_WIDTH / SCREEN_HEIGHT, CAMERA_FOV, CAMERA_INITIAL_POS);
 
-glm::vec3 sunDir = glm::vec3(-1, 0, -0.5f);
-float ambientLight = 0.0f;
-
-GLuint vaoFlat, vboFlat, vao, vbo, ebo;
-int nIndices, nVerticesFlat;
 float lastFrame, deltaTime;
 
 static void glfw_error_callback(int error, const char* description) {
@@ -113,6 +110,7 @@ static void render(Model &model, Shader &gouraudShader, Shader &phongShader) {
     glm::mat4 view = camera.viewMatrix();
     glm::mat4 transform = glm::mat4(1.0f);
 
+    shader.setVec3("eyePos", camera.getPosition());
     shader.setMat4("view", view);
     shader.setMat4("transform", transform);
     shader.use();
@@ -151,6 +149,12 @@ int main()
 
     Model model("../resources/sphere.obj", true);
 
+    DirectionalLight dirLight(
+        glm::vec3(-1, 0, -0.5f), 
+        glm::vec3(0.5f, 0.5f, 0.5f),
+        glm::vec3(0.8f, 0.8f, 0.8f)
+    );
+
     std::string vertexShader = util::readFile("../shaders/phong.vert");
     std::string fragmentShader = util::readFile("../shaders/phong.frag");
     Shader phongShader(vertexShader, fragmentShader);
@@ -161,12 +165,10 @@ int main()
 
     glm::mat4 projection = camera.projectionMatrix();
     gouraudShader.setMat4("projection", projection);
-    gouraudShader.setVec3("inLightDir", sunDir);
-    gouraudShader.setFloat("inAmbientLight", ambientLight);
+    draw::setDirectionalLight(gouraudShader, "dirLight", dirLight);
 
     phongShader.setMat4("projection", projection);
-    phongShader.setVec3("inLightDir", sunDir);
-    phongShader.setFloat("inAmbientLight", ambientLight);
+    draw::setDirectionalLight(phongShader, "dirLight", dirLight);
 
     lastFrame = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
