@@ -147,7 +147,7 @@ void Mesh::print() {
 
 Model::Model(char* path, bool supportFlatShading) {
     Assimp::Importer importer;
-    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenNormals);
+    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         printf("Assimp error: %s\n", importer.GetErrorString());
         return;
