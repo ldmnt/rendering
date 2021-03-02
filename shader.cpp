@@ -45,7 +45,7 @@ int Shader::compileShader(GLenum type, const char* source) {
         glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &maxLength);
         char* log = (new std::vector<char>(maxLength))->data();
         glGetShaderInfoLog(shaderId, maxLength, &maxLength, log);
-        char* typeStr = type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT";
+        const char* typeStr = type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT";
         fprintf(stderr, "Shader Compile time error (%s): %s\n", typeStr, log);
         glDeleteShader(shaderId);
         return 0;

@@ -1,4 +1,4 @@
-#include <GLEW/glew.h>
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <string>
@@ -147,7 +147,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    Model model("../resources/sphere.obj", true);
+    Model model("resources/sphere.obj", true);
 
     DirectionalLight dirLight(
         glm::vec3(-1, 0, -0.5f), 
@@ -155,12 +155,12 @@ int main()
         glm::vec3(0.8f, 0.8f, 0.8f)
     );
 
-    std::string vertexShader = util::readFile("../shaders/phong.vert");
-    std::string fragmentShader = util::readFile("../shaders/phong.frag");
+    std::string vertexShader = util::readFile("shaders/phong.vert");
+    std::string fragmentShader = util::readFile("shaders/phong.frag");
     Shader phongShader(vertexShader, fragmentShader);
 
-    vertexShader = util::readFile("../shaders/gouraud.vert");
-    fragmentShader = util::readFile("../shaders/gouraud.frag");
+    vertexShader = util::readFile("shaders/gouraud.vert");
+    fragmentShader = util::readFile("shaders/gouraud.frag");
     Shader gouraudShader(vertexShader, fragmentShader);
 
     glm::mat4 projection = camera.projectionMatrix();
