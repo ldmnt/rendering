@@ -18,8 +18,6 @@
 #include "light.h"
 #include "drawing.h"
 
-const int CONE_RESOLUTION = 128;
-
 const float SCREEN_WIDTH = 640.0f;
 const float SCREEN_HEIGHT = 480.0f;
 
@@ -31,9 +29,6 @@ const glm::vec3 CAMERA_INITIAL_POS = glm::vec3(2.5f, 1.8f, 1.5f);
 const glm::vec3 CAMERA_INITIAL_AIM = glm::normalize(glm::vec3(0.0f) - CAMERA_INITIAL_POS);
 
 const float MOUSE_SENSITIVITY = 0.3f;
-
-enum class ShadingMode { FLAT, GOURAUD, PHONG };
-ShadingMode shadingMode = ShadingMode::PHONG;
 
 bool firstMouse = true;
 double lastMouseX, lastMouseY;
@@ -50,21 +45,6 @@ static void glfw_error_callback(int error, const char* description) {
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
-    if (key == GLFW_KEY_F && action == GLFW_PRESS) {
-        if (!fixedCamera) {
-            camera.lookAt(glm::vec3(0.0f));
-        }
-        fixedCamera = !fixedCamera;
-    }
-    if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
-        shadingMode = ShadingMode::FLAT;
-    }
-    if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
-        shadingMode = ShadingMode::GOURAUD;
-    }
-    if (key == GLFW_KEY_3 && action == GLFW_PRESS) {
-        shadingMode = ShadingMode::PHONG;
-    }
 }
 
 static void mouse_callback(GLFWwindow* window, double xPosition, double yPosition) {
@@ -78,12 +58,7 @@ static void mouse_callback(GLFWwindow* window, double xPosition, double yPositio
     float xOffset = (lastMouseX - xPosition) * MOUSE_SENSITIVITY;
     float yOffset = (lastMouseY - yPosition) * MOUSE_SENSITIVITY;
 
-    if (fixedCamera) {
-        camera.rotateAroundOrigin(xOffset, yOffset);
-    }
-    else {
-        camera.turn(xOffset, yOffset);
-    }
+    camera.turn(xOffset, yOffset);
     
     lastMouseX = xPosition;
     lastMouseY = yPosition;
@@ -104,9 +79,7 @@ static void processInput(GLFWwindow* window) {
     }
 }
 
-static void render(Model &model, Shader &gouraudShader, Shader &phongShader) {
-    Shader &shader = shadingMode == ShadingMode::PHONG ? phongShader : gouraudShader;
-
+static void render(Model &model, Shader &shader) {
     glm::mat4 view = camera.viewMatrix();
     glm::mat4 transform = glm::mat4(1.0f);
 
@@ -115,7 +88,7 @@ static void render(Model &model, Shader &gouraudShader, Shader &phongShader) {
     shader.setMat4("transform", transform);
     shader.use();
 
-    model.draw(shader, shadingMode == ShadingMode::FLAT);
+    model.draw(shader);
 }
 
 int main()
@@ -147,7 +120,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    Model model("resources/sphere.obj", true);
+    Model model("resources/sphere.obj");
 
     DirectionalLight dirLight(
         glm::vec3(-1, 0, -0.5f), 
@@ -159,14 +132,7 @@ int main()
     std::string fragmentShader = util::readFile("shaders/phong.frag");
     Shader phongShader(vertexShader, fragmentShader);
 
-    vertexShader = util::readFile("shaders/gouraud.vert");
-    fragmentShader = util::readFile("shaders/gouraud.frag");
-    Shader gouraudShader(vertexShader, fragmentShader);
-
     glm::mat4 projection = camera.projectionMatrix();
-    gouraudShader.setMat4("projection", projection);
-    draw::setDirectionalLight(gouraudShader, "dirLight", dirLight);
-
     phongShader.setMat4("projection", projection);
     draw::setDirectionalLight(phongShader, "dirLight", dirLight);
 
@@ -180,7 +146,7 @@ int main()
 
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        render(model, gouraudShader, phongShader);
+        render(model, phongShader);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

@@ -7,11 +7,11 @@
 
 
 struct Vertex {
-    glm::vec3 position;
+    glm::vec4 position;
     glm::vec3 normal;
     
     Vertex();
-    Vertex(glm::vec3 position, glm::vec3 normal);
+    Vertex(glm::vec4 position, glm::vec3 normal);
 };
 
 struct Face {
@@ -29,17 +29,13 @@ class Mesh {
 private:
     std::vector<Vertex> vertices;
     std::vector<Face> faces;
-    bool supportFlatShading;
 
     unsigned int vao, vbo, ebo;
-    unsigned int vaoFlat, vboFlat;
     void bufferData();
-    void bufferFlatShadingData();
     void unbufferData();
-    void unbufferFlatShadingData();
 
 public:
-    Mesh(std::vector<Vertex> vertices, std::vector<Face> faces, bool supportFlatShading);
+    Mesh(std::vector<Vertex> vertices, std::vector<Face> faces);
     Mesh(const Mesh&) = delete;
     Mesh &operator=(const Mesh&) = delete;
     Mesh(Mesh&& other);
@@ -47,7 +43,7 @@ public:
     ~Mesh();
     void release();
     int faceCount();
-    void draw(Shader &shader, bool flatShading);
+    void draw(Shader &shader);
     void print();
 };
 
@@ -56,10 +52,6 @@ private:
     std::vector<std::unique_ptr<Mesh>> meshes;
 
 public:
-    Model(char* path, bool supportFlatShading = false);
-    void draw(Shader& shader, bool flatShading = false);
+    Model(char* path);
+    void draw(Shader& shader);
 };
-
-namespace mdl {
-    Mesh generateCone(int sides, float scale, float aspectRatio = 1.0f);
-}

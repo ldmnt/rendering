@@ -9,14 +9,14 @@ struct DirectionalLight {
 out vec4 outColor;
 
 in vec3 normal;
-in vec3 fragPos;
+in vec4 fragPos;
 
 uniform vec3 eyePos;
 uniform DirectionalLight dirLight;
 
 void main() {
 	vec3 reflectDir = reflect(dirLight.direction, normalize(normal));
-	vec3 eyeDir = normalize(eyePos - fragPos);
+	vec3 eyeDir = normalize(eyePos - fragPos.xyz);
 	vec3 ambient = 1.0f * dirLight.ambient;
 	vec3 diffuse = 0.8f * max(0, dot(-dirLight.direction, normal)) * dirLight.diffuse;
 	vec3 specular = 0.5f * pow(max(0, dot(reflectDir, eyeDir)), 16) * dirLight.diffuse;
