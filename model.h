@@ -53,5 +53,13 @@ private:
 
 public:
     Model(char* path);
+    Model(std::unique_ptr<Mesh> &mesh);
     void draw(Shader& shader);
+    void print();
 };
+
+namespace mdl {
+    Model generatePolyhedron(std::vector<glm::vec3> vertices, std::vector<Face> faces);
+    Model euclideanPyramid();
+    Model euclideanCube();
+}

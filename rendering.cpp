@@ -120,7 +120,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    Model model("resources/sphere.obj");
+    Model model = mdl::euclideanCube();
 
     DirectionalLight dirLight(
         glm::vec3(-1, 0, -0.5f), 

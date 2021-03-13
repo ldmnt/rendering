@@ -85,7 +85,8 @@ void Mesh::draw(Shader &shader) {
 void Mesh::print() {
     printf("vertices:\n");
     for (int i = 0; i < vertices.size(); i++) {
-        printf("vertex (%.2f, %.2f, %.2f) - normal (%.2f, %.2f, %.2f)\n", 
+        printf("%d - vertex (%.2f, %.2f, %.2f) - normal (%.2f, %.2f, %.2f)\n", 
+            i,
             vertices[i].position[0], vertices[i].position[1], vertices[i].position[2],
             vertices[i].normal[0], vertices[i].normal[1], vertices[i].normal[2]
         );
@@ -93,6 +94,12 @@ void Mesh::print() {
     printf("\nfaces\n");
     for (int i = 0; i < faces.size(); i++) {
         printf("(%d, %d, %d)\n", faces[i].indices[0], faces[i].indices[1], faces[i].indices[2]);
+    }
+}
+
+void Model::print() {
+    for (int i = 0; i < meshes.size(); i++) {
+        meshes[i].get()->print();
     }
 }
 
@@ -138,8 +145,73 @@ Model::Model(char* path) {
     processNode(scene->mRootNode);
 }
 
+Model::Model(std::unique_ptr<Mesh> &mesh) {
+    meshes.push_back(std::move(mesh));
+}
+
 void Model::draw(Shader& shader) {
     for (auto it = meshes.begin(); it != meshes.end(); it++) {
         (*it)->draw(shader);
+    }
+}
+
+namespace mdl {
+    Model generatePolyhedron(std::vector<glm::vec3> vertices, std::vector<Face> faces) {
+        auto mesh_vertices = std::vector<Vertex>();
+        auto mesh_faces = std::vector<Face>();
+        for (int k = 0; k < faces.size(); ++k) {
+            auto v1 = vertices[faces[k].indices[0]];
+            auto v2 = vertices[faces[k].indices[1]];
+            auto v3 = vertices[faces[k].indices[2]];
+            auto normal = glm::normalize(glm::cross(v2 - v1, v3 - v1));
+            mesh_vertices.push_back(Vertex(glm::vec4(v1, 1.0f), normal));
+            mesh_vertices.push_back(Vertex(glm::vec4(v2, 1.0f), normal));
+            mesh_vertices.push_back(Vertex(glm::vec4(v3, 1.0f), normal));
+            mesh_faces.push_back(Face(3 * k, 3 * k + 1, 3 * k + 2));
+        }
+        Mesh *m = new Mesh(mesh_vertices, mesh_faces);
+        auto res = std::unique_ptr<Mesh>(m);
+        return Model(res);
+    }
+
+    Model euclideanPyramid() {
+        auto vertices = std::vector<glm::vec3> {
+            glm::vec3(0.5f, -0.5f, -0.5f),
+            glm::vec3(0.5f, 0.5f, -0.5f),
+            glm::vec3(-0.5f, 0.5f, -0.5f),
+            glm::vec3(-0.5f, -0.5f, -0.5f),
+            glm::vec3(0.0f, 0.0f, 0.5f)
+        };
+        auto faces = std::vector<Face> {
+            Face(1, 0, 2),
+            Face(0, 3, 2),
+            Face(0, 1, 4),
+            Face(1, 2, 4),
+            Face(2, 3, 4),
+            Face(3, 0, 4)
+        };
+        return generatePolyhedron(vertices, faces);
+    }
+
+    Model euclideanCube() {
+        auto vertices = std::vector<glm::vec3> {
+            glm::vec3(0.5, 0.5, 0.5),
+            glm::vec3(-0.5, 0.5, 0.5),
+            glm::vec3(-0.5, -0.5, 0.5),
+            glm::vec3(0.5, -0.5, 0.5),
+            glm::vec3(0.5, -0.5, -0.5),
+            glm::vec3(0.5, 0.5, -0.5),
+            glm::vec3(-0.5, 0.5, -0.5),
+            glm::vec3(-0.5, -0.5, -0.5)
+        };
+        auto faces = std::vector<Face> {
+            Face(0, 1, 2), Face(0, 2, 3),
+            Face(0, 5, 6), Face(0, 6, 1),
+            Face(1, 6, 7), Face(1, 7, 2),
+            Face(3, 7, 4), Face(3, 2, 7),
+            Face(7, 5, 4), Face(7, 6, 5),
+            Face(3, 4, 5), Face(3, 5, 0),
+        };
+        return generatePolyhedron(vertices, faces);
     }
 }

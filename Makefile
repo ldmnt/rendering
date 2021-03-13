@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-Wall
+CFLAGS=-Wall -g
 LDFLAGS=-lGL -lGLEW -lassimp `pkg-config --static --libs glfw3`
 BUILDDIR=_build
 sources=$(shell echo *.cpp)
@@ -10,10 +10,10 @@ $(BUILDDIR)/rendering: $(objects) $(BUILDDIR)
 	$(CC) $(CFLAGS) -o $@ $(objects)  $(LDFLAGS)
 
 $(BUILDDIR)/%.o: %.cpp %.h $(BUILDDIR)
-	$(CC) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILDDIR)/rendering.o: rendering.cpp $(BUILDDIR)
-	$(CC) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 	
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)

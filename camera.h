@@ -5,7 +5,7 @@ class Camera {
 private:
     glm::vec3 position;
     glm::vec3 front, right, up;
-    float pitch, yaw;
+    glm::mat4 transform;
 
     float nearPlane, farPlane;
     float fov;
@@ -18,13 +18,11 @@ public:
     void moveForward(float);
     void moveRight(float);
     void turn(float counterClockwiseAngle, float risingAngle);
-    void rotateAroundOrigin(float counterClockwiseAngle, float risingAngle);
     void lookAt(glm::vec3 target);
     glm::mat4 viewMatrix();
     glm::mat4 projectionMatrix();
 
 private:
     void updateVectors();
-    void updateMembersFromFront();
 };
 
