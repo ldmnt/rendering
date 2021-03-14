@@ -1,9 +1,9 @@
 #version 330
 
 layout (location = 0) in vec4 inVertex;
-layout (location = 1) in vec3 inNormal;
+layout (location = 1) in vec4 inNormal;
 
-out vec3 normal;
+out vec4 normal;
 out vec4 fragPos;
 
 uniform mat4 transform;

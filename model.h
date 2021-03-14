@@ -8,10 +8,10 @@
 
 struct Vertex {
     glm::vec4 position;
-    glm::vec3 normal;
+    glm::vec4 normal;
     
     Vertex();
-    Vertex(glm::vec4 position, glm::vec3 normal);
+    Vertex(glm::vec4 position, glm::vec4 normal);
 };
 
 struct Face {

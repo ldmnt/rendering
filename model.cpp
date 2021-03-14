@@ -7,7 +7,7 @@
 
 Vertex::Vertex() {}
 
-Vertex::Vertex(glm::vec4 position, glm::vec3 normal) : position(position), normal(normal) {}
+Vertex::Vertex(glm::vec4 position, glm::vec4 normal) : position(position), normal(normal) {}
 
 Face::Face() {}
 
@@ -118,7 +118,7 @@ Model::Model(char* path) {
         for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
             Vertex v(
                 glm::vec4(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z, 1.0f),
-                glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z)
+                glm::vec4(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z, 0.0f)
             );
             vertices.push_back(v);
         }
@@ -164,9 +164,9 @@ namespace mdl {
             auto v2 = vertices[faces[k].indices[1]];
             auto v3 = vertices[faces[k].indices[2]];
             auto normal = glm::normalize(glm::cross(v2 - v1, v3 - v1));
-            mesh_vertices.push_back(Vertex(glm::vec4(v1, 1.0f), normal));
-            mesh_vertices.push_back(Vertex(glm::vec4(v2, 1.0f), normal));
-            mesh_vertices.push_back(Vertex(glm::vec4(v3, 1.0f), normal));
+            mesh_vertices.push_back(Vertex(glm::vec4(v1, 1.0f), glm::vec4(normal, 0.0f)));
+            mesh_vertices.push_back(Vertex(glm::vec4(v2, 1.0f), glm::vec4(normal, 0.0f)));
+            mesh_vertices.push_back(Vertex(glm::vec4(v3, 1.0f), glm::vec4(normal, 0.0f)));
             mesh_faces.push_back(Face(3 * k, 3 * k + 1, 3 * k + 2));
         }
         Mesh *m = new Mesh(mesh_vertices, mesh_faces);
