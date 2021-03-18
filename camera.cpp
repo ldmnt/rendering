@@ -1,3 +1,4 @@
+#include <glm/matrix.hpp>
 #include <math.h>
 #include "camera.h"
 
@@ -53,5 +54,59 @@ glm::mat4 Camera::viewMatrix() {
 }
 
 glm::mat4 Camera::projectionMatrix() {
+    return glm::perspective(fov, aspectRatio, nearPlane, farPlane);
+}
+
+
+SphericalCamera::SphericalCamera(float nearPlane, float farPlane, float aspectRatio, float fov, glm::mat4 rotation) :
+    rotation(rotation), nearPlane(nearPlane), farPlane(farPlane), aspectRatio(aspectRatio), fov(fov) {}
+
+glm::vec4 SphericalCamera::getPosition() {
+    return rotation[3];
+}
+
+void SphericalCamera::move(float angle, MovementType type) {
+    glm::mat4 displacement;
+    switch (type) {
+    case MovementType::FORWARD:
+        displacement = glm::mat4(
+            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 0.0f, cos(angle), sin(angle)),
+            glm::vec4(0.0f, 0.0f, -sin(angle), cos(angle))
+        );
+        break;
+    case MovementType::RIGHT:
+        displacement = glm::mat4(
+            glm::vec4(cos(-angle), 0.0f, 0.0f, sin(-angle)),
+            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+            glm::vec4(-sin(-angle), 0.0f, 0.0f, cos(-angle))
+        );
+        break;
+    case MovementType::UP:
+        displacement = glm::mat4(
+            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, cos(angle), 0.0f, sin(angle)),
+            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+            glm::vec4(0.0f, -sin(angle), 0.0f, cos(angle))
+        );
+        break;
+    }
+
+    rotation = rotation * displacement;
+    
+//    glm::vec4 right = rotation[0];
+//    glm::vec4 up = rotation[1];
+//    glm::vec4 back = rotation[2];
+//    glm::vec4 position = rotation[3];
+//
+}
+
+glm::mat4 SphericalCamera::viewMatrix() {
+    return glm::transpose(rotation);
+}
+
+glm::mat4 SphericalCamera::projectionMatrix() {
     return glm::perspective(fov, aspectRatio, nearPlane, farPlane);
 }

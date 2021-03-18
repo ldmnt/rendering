@@ -25,16 +25,19 @@ const float CAMERA_SPEED = 2.5f;
 const float CAMERA_FOV = 45.0f;
 const float CAMERA_NEAR_PLANE = 0.02f;
 const float CAMERA_FAR_PLANE = 1000.0f;
-const glm::vec3 CAMERA_INITIAL_POS = glm::vec3(2.5f, 1.8f, 1.5f);
-const glm::vec3 CAMERA_INITIAL_AIM = glm::normalize(glm::vec3(0.0f) - CAMERA_INITIAL_POS);
+const glm::mat4 CAMERA_INITIAL_ROTATION = glm::mat4(
+    glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+    glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+    glm::vec4(cos(-glm::pi<float>()/6.0f), 0.0f, 0.0f, sin(-glm::pi<float>()/6.0f)),
+    glm::vec4(-sin(-glm::pi<float>()/6.0f), 0.0f, 0.0f, cos(-glm::pi<float>()/6.0f))
+);
 
 const float MOUSE_SENSITIVITY = 0.3f;
 
 bool firstMouse = true;
 double lastMouseX, lastMouseY;
 
-bool fixedCamera = true;
-Camera camera(CAMERA_INITIAL_AIM, CAMERA_NEAR_PLANE, CAMERA_FAR_PLANE, SCREEN_WIDTH / SCREEN_HEIGHT, CAMERA_FOV, CAMERA_INITIAL_POS);
+SphericalCamera camera(CAMERA_NEAR_PLANE, CAMERA_FAR_PLANE, SCREEN_WIDTH / SCREEN_HEIGHT, CAMERA_FOV, CAMERA_INITIAL_ROTATION);
 
 float lastFrame, deltaTime;
 
@@ -45,6 +48,7 @@ static void glfw_error_callback(int error, const char* description) {
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+
 }
 
 static void mouse_callback(GLFWwindow* window, double xPosition, double yPosition) {
@@ -58,7 +62,8 @@ static void mouse_callback(GLFWwindow* window, double xPosition, double yPositio
     float xOffset = (lastMouseX - xPosition) * MOUSE_SENSITIVITY;
     float yOffset = (lastMouseY - yPosition) * MOUSE_SENSITIVITY;
 
-    camera.turn(xOffset, yOffset);
+//    camera.move(xOffset, SphericalCamera::MovementType::HORIZONTAL_ROTATION);
+//    camera.move(yOffset, SphericalCamera::MovementType::VERTICAL_ROTATION);
     
     lastMouseX = xPosition;
     lastMouseY = yPosition;
@@ -66,16 +71,22 @@ static void mouse_callback(GLFWwindow* window, double xPosition, double yPositio
 
 static void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        camera.moveForward(CAMERA_SPEED * deltaTime);
+        camera.move(CAMERA_SPEED * deltaTime, SphericalCamera::MovementType::FORWARD);
     }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        camera.moveForward(-CAMERA_SPEED * deltaTime);
+        camera.move(-CAMERA_SPEED * deltaTime, SphericalCamera::MovementType::FORWARD);
     }
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        camera.moveRight(CAMERA_SPEED * deltaTime);
+        camera.move(CAMERA_SPEED * deltaTime, SphericalCamera::MovementType::RIGHT);
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        camera.moveRight(-CAMERA_SPEED * deltaTime);
+        camera.move(-CAMERA_SPEED * deltaTime, SphericalCamera::MovementType::RIGHT);
+    }
+    if (glfwGetKey(window, GLFW_KEY_KP_0) == GLFW_PRESS) {
+        camera.move(CAMERA_SPEED * deltaTime, SphericalCamera::MovementType::UP);
+    }
+    if (glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS) {
+        camera.move(-CAMERA_SPEED * deltaTime, SphericalCamera::MovementType::UP);
     }
 }
 
@@ -120,7 +131,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    Model model = mdl::euclideanCube();
+    Model model = mdl::sphericalCube();
 
     DirectionalLight dirLight(
         glm::vec3(-1, 0, -0.5f), 

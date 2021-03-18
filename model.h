@@ -60,6 +60,8 @@ public:
 
 namespace mdl {
     Model generatePolyhedron(std::vector<glm::vec3> vertices, std::vector<Face> faces);
+    Model generateSphericalPolyhedron(std::vector<glm::vec4> vertices, std::vector<Face> faces);
     Model euclideanPyramid();
     Model euclideanCube();
+    Model sphericalCube();
 }

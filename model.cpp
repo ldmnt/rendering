@@ -4,6 +4,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <functional>
+#include "util.h"
 
 Vertex::Vertex() {}
 
@@ -174,6 +175,24 @@ namespace mdl {
         return Model(res);
     }
 
+    Model generateSphericalPolyhedron(std::vector<glm::vec4> vertices, std::vector<Face> faces) {
+        auto mesh_vertices = std::vector<Vertex>();
+        auto mesh_faces = std::vector<Face>();
+        for (int k = 0; k < faces.size(); ++k) {
+            auto v1 = vertices[faces[k].indices[0]];
+            auto v2 = vertices[faces[k].indices[1]];
+            auto v3 = vertices[faces[k].indices[2]];
+            auto normal = glm::normalize(util::cross(v2 - v1, v3 - v1, (v1 + v2 + v3) / 3.0f));
+            mesh_vertices.push_back(Vertex(v1, normal));
+            mesh_vertices.push_back(Vertex(v2, normal));
+            mesh_vertices.push_back(Vertex(v3, normal));
+            mesh_faces.push_back(Face(3 * k, 3 * k + 1, 3 * k + 2));
+        }
+        Mesh *m = new Mesh(mesh_vertices, mesh_faces);
+        auto res = std::unique_ptr<Mesh>(m);
+        return Model(res);
+    }
+
     Model euclideanPyramid() {
         auto vertices = std::vector<glm::vec3> {
             glm::vec3(0.5f, -0.5f, -0.5f),
@@ -213,5 +232,27 @@ namespace mdl {
             Face(3, 4, 5), Face(3, 5, 0),
         };
         return generatePolyhedron(vertices, faces);
+    }
+
+    Model sphericalCube() {
+        auto vertices = std::vector<glm::vec4> {
+            glm::vec4(0.1, 0.1, 0.1, 0.9849),
+            glm::vec4(-0.1, 0.1, 0.1, 0.9849),
+            glm::vec4(-0.1, -0.1, 0.1, 0.9849),
+            glm::vec4(0.1, -0.1, 0.1, 0.9849),
+            glm::vec4(0.1, -0.1, -0.1, 0.9849),
+            glm::vec4(0.1, 0.1, -0.1, 0.9849),
+            glm::vec4(-0.1, 0.1, -0.1, 0.9849),
+            glm::vec4(-0.1, -0.1, -0.1, 0.9849)
+        };
+        auto faces = std::vector<Face> {
+            Face(0, 1, 2), Face(0, 2, 3),
+            Face(0, 5, 6), Face(0, 6, 1),
+            Face(1, 6, 7), Face(1, 7, 2),
+            Face(3, 7, 4), Face(3, 2, 7),
+            Face(7, 5, 4), Face(7, 6, 5),
+            Face(3, 4, 5), Face(3, 5, 0),
+        };
+        return generateSphericalPolyhedron(vertices, faces);
     }
 }
